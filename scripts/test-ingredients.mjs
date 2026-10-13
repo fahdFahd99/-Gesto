@@ -1,0 +1,15 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {sameComposition,compositionSignature,ingredientsOf,formatComposition,parseActiveIngredients,validComposition} from '../lib/ingredients.ts';
+const p=(dose=500,unit='mg')=>({name:'Paracétamol',dose,unit});
+const t=(dose=2,unit='mg')=>({name:'Thiocolchicoside',dose,unit});
+test('same DCI and dosage in either order',()=>{assert(sameComposition([p(),t()],[t(),p()]));});
+test('substance counts: 2 is not 1, extra substance excluded',()=>{assert(!sameComposition([p(),t()],[p()]));assert(!sameComposition([p()],[p(),t()]));});
+test('strict dose rejects different strengths and wrong substance',()=>{assert(!sameComposition([p(),t()],[p(1000),t()]));assert(!sameComposition([p(),t()],[p(),{name:'Caféine',dose:2,unit:'mg'}]));});
+test('convert compatible mass units',()=>{assert(sameComposition([p(500,'mg')],[p(0.5,'g')]));assert(sameComposition([p(1000,'µg')],[p(1,'mg')]));});
+test('concentrations normalized but not interchangeable with total-mass',()=>{assert(sameComposition([p(500,'mg/5 ml')],[p(100,'mg/ml')]));assert(sameComposition([p(1,'g/L')],[p(1,'mg/ml')]));assert(!sameComposition([p(100,'mg/ml')],[p(100,'mg')]));});
+test('UI and % do not convert to mg',()=>{assert(!sameComposition([p(10,'UI')],[p(10,'mg')]));assert(!sameComposition([p(1,'%')],[p(10,'mg/ml')]));});
+test('case/accents normalization',()=>{assert(sameComposition([p()],[{name:' paracetamol ',dose:500,unit:'mg'}]));});
+test('reject duplicate DCI, invalid and incomplete rows, empty composition',()=>{assert(!validComposition([p(),p(1000)]));assert(!validComposition([{...p(),dose:0}]));assert(!sameComposition([],[]));assert(!sameComposition([p()],[{name:'Paracétamol',dose:NaN,unit:'mg'}]));});
+test('legacy single ingredient safely inferred, combinations not inferred',()=>{assert.deepEqual(ingredientsOf({dci:'Paracétamol',dosage:'500',dosageUnit:'mg'}),[p()]);assert.deepEqual(ingredientsOf({dci:'Paracétamol + Thiocolchicoside',dosage:'500',dosageUnit:'mg'}),[]);assert.deepEqual(ingredientsOf({activeIngredients:'broken',dci:'Paracétamol',dosage:'500',dosageUnit:'mg'}),[]);});
+test('parse persisted JSON, fail closed on invalid',()=>{const s=JSON.stringify([p(),t()]);assert.deepEqual(parseActiveIngredients(s),[p(),t()]);assert.deepEqual(parseActiveIngredients('broken'),[]);assert.deepEqual(parseActiveIngredients(JSON.stringify([...Array(2)].map((_,i)=>i?{name:'SUBSTANCE',dose:0,unit:'mg'}:p()))),[]);assert.equal(formatComposition([p(),t()]),'Paracétamol 500 mg + Thiocolchicoside 2 mg');});
