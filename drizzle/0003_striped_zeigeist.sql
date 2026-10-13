@@ -1,0 +1,2 @@
+ALTER TABLE `saleLines` ADD `taxTotalCents` integer DEFAULT 0 NOT NULL;--> statement-breakpoint
+UPDATE saleLines SET taxTotalCents=CAST(ROUND((SELECT SUM(b.quantity) FROM saleLines b WHERE b.saleId=saleLines.saleId AND b.productId=saleLines.productId AND b.id<=saleLines.id)*priceCents*taxRateBp*1.0/(10000+taxRateBp))-ROUND(COALESCE((SELECT SUM(b.quantity) FROM saleLines b WHERE b.saleId=saleLines.saleId AND b.productId=saleLines.productId AND b.id<saleLines.id),0)*priceCents*taxRateBp*1.0/(10000+taxRateBp)) AS INTEGER);
