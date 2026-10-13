@@ -1,0 +1,8 @@
+[build]
+  command = "pnpm build:netlify"
+  publish = ".next"
+[build.environment]
+  NODE_VERSION = "22"
+  PNPM_VERSION = "11.25.0"
+# Next.js is handled by Netlify's automatic OpenNext adapter.
+# DATABASE_URL, DATABASE_AUTH_TOKEN, APP_ORIGIN and SETUP_TOKEN are server-only.
